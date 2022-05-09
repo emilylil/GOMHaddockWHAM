@@ -2,3 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+/plots
+/plots_png
+/html
+/compare_png
+.html
+.xlsx
