@@ -21,8 +21,8 @@ GOM_HADDOCK_DAT <- read_asap3_dat("GOM_HADDOCK_ASAP_2021_BASE_NEWCALIB.DAT")
 
 ##################################### MODEL(s) #####################################
 
-#------------------------------------ Test 0: Compare WHAM and ASAP ------------------------------------
-# Make a folder to put the results of Test 0:
+#------------------------------------ Test 3: Compare models with different Rec and NAA structure ------------------------------------
+# Make a folder to put the results of Test 3:
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 TestName <- "Test3_Comparison_RecNAA"
 if(!dir.exists(TestName)) dir.create(TestName)
@@ -119,8 +119,7 @@ models <- list(ASAP=ASAP,iid=mods[[24]],AR1A=mods[[22]],AR1Y=mods[[23]])
 # Compare across models
 # compare_wham_models(models,fdir=getwd())
 
-
-##################################### Epilogue/Footer, junk code that might be useful #####################################
+#------------------------------------ Test 4: Compare models with different Rec, NAA, sel structure ------------------------------------
 
 # White noise: recruit_model-1, cor-iid
 # Random walk: recruit_model-2, cor-iid
@@ -131,6 +130,7 @@ models <- list(ASAP=ASAP,iid=mods[[24]],AR1A=mods[[22]],AR1Y=mods[[23]])
 
 GOM_HADDOCK_DAT <- read_asap3_dat("GOM_HADDOCK_ASAP_2021_1BLOCK_NEWCALIB.DAT")
 
+# Make a folder to put the results of Test 4:
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 TestName <- "Test5_Comparison_RecNAASel"
 if(!dir.exists(TestName)) dir.create(TestName)
@@ -192,35 +192,9 @@ for(m in 1:n.mods){
   saveRDS(mod, file=paste0(df.mods$Model[m],".rds"))
 }
 
-# Mapping the estimation of numbers at age in the first year:
-# input$map$log_N1_pars=as.factor(matrix(data=NA,nrow=1,ncol=9)) # Fix all values
-# input$map$log_N1_pars=as.factor(matrix(data=c(1,2,3,4,5,6,NA,NA,7),nrow=1,ncol=9)) # Fix ages 7-8
-# input$map$log_N1_pars=as.factor(matrix(data=c(1,2,3,4,5,6,NA,7,8),nrow=1,ncol=9)) # Fix ages 8
 
-# input$par
-
-input$data$catch_Neff <- input$data$catch_Neff*100
-input$data$index_Neff <- input$data$index_Neff*100
-
-input$random
-input$par
-input$map
-
-# Fit model:
-mod <- fit_wham(input, do.osa = F, do.check=T) # turn off OSA residuals to save time
-# m1 <- fit_wham(input, do.osa = F) # turn off OSA residuals to save time
-
-check_convergence(mod)
-
-plot_wham_output(mod=mod,out.type="html")
-
-saveRDS(mod, file=paste0(df.mods$Model[m],".rds"))
-
-models <- list(ASAP=ASAP,iid=mod,iid=mod)
-
-# Compare across models
-# compare_wham_models(models,fdir=getwd())
-
+##################################### Epilogue/Footer, junk code that might be useful #####################################
+# How to parameterize the 3 block model into two blocks:
 input <- prepare_wham_input(GOM_HADDOCK_DAT, recruit_model=2, model_name="GOMHaddock_RW_Recruitment",
                             selectivity=list(model=rep("age-specific",5),
                                              re=rep("none",5),
@@ -235,19 +209,18 @@ input <- prepare_wham_input(GOM_HADDOCK_DAT, recruit_model=2, model_name="GOMHad
 # Change mapping so the third catch selectivity block necessarily matches the second
 input$map$logit_selpars[1:45] <- as.factor(c(1,2,2,3,4,5,6,6,7,8,9,10,10,11,12,13,14,14,NA,15,16,17,17,NA,18,19,20,20,NA,NA,21,22,22,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA))
 
+#Basic fit model:
+# Fit model:
+mod <- fit_wham(input, do.osa = F, do.check=T) # turn off OSA residuals to save time
+# m1 <- fit_wham(input, do.osa = F) # turn off OSA residuals to save time
 
-# GOM_HADDOCK_DAT <- read_asap3_dat("GOM_HADDOCK_ASAP_2021_BASE_NEWCALIB_EVERYYEARSEL.DAT")
-# initial_pars<- list(c(0.01,0.1,0.3,0.5,0.8,0.9,0.999,0.999,0.999))
-# 
-# # input <- prepare_wham_input(GOM_HADDOCK_DAT, recruit_model=2, model_name="GOMHaddock_RW_Recruitment")
-# input <- prepare_wham_input(GOM_HADDOCK_DAT, recruit_model=2, model_name="GOMHaddock_RW_Recruitment",
-#                             selectivity=list(model=rep("age-specific",3),
-#                                              re=c(rep("iid",43),rep("none",2)),
-#                                              initial_pars <- c(rep(initial_pars,43),list(c(0.2,0.4,0.8,1,1,1,1,1,1)),list(c(0.1,0.3,0.5,0.8,0.9,1,1,1,1))),
-#                                              # initial_pars <- list(c(0.01,0.1,0.3,0.5,0.8,0.9,0.999,0.999,0.999),
-#                                              #                      c(0.2,0.4,0.8,1,1,1,1,1,1),
-#                                              #                      c(0.1,0.3,0.5,0.8,0.9,1,1,1,1)),
-#                                              fix_pars=c(vector(mode = "list", length = 1),list(c(4:9),c(6:9)))),
-#                             # NAA_re=list(sigma="rec+1",cor='iid'),
-#                             # age_comp=df.mods[m,"agecomp"])
-#                             age_comp="dirichlet")
+check_convergence(mod)
+
+plot_wham_output(mod=mod,out.type="html")
+
+saveRDS(mod, file=paste0(df.mods$Model[m],".rds"))
+
+models <- list(ASAP=ASAP,iid=mod,iid=mod)
+
+# Compare across models
+# compare_wham_models(models,fdir=getwd())
