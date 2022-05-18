@@ -10,6 +10,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #Load Packages:
 library(wham)
 library(TMB)
+library(dplyr)
 
 ##################################### DATA #####################################
 
@@ -21,18 +22,18 @@ GOM_HADDOCK_DAT <- read_asap3_dat("GOM_HADDOCK_ASAP_2021_BASE_NEWCALIB.DAT")
 #------------------------------------ Test 0: Compare WHAM and ASAP ------------------------------------
 # Make a folder to put the results of Test 0:
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-TestName <- "Test0_Comparison"
+TestName <- "Test2_Comparison_ESS"
 if(!dir.exists(TestName)) dir.create(TestName)
 setwd(file.path(getwd(),TestName))
 
 # Read in ASAP model fitted values
 ASAP <- read_asap3_fit(wd="C:/Users/Emily/Documents/WoodsHoleSabbotical/GOMHaddockWHAM/GOMHaddockASAP",asap.name="GOM_HADDOCK_ASAP_2021_BASE_NEWCALIB")
 
-compopts <- c('multinomial','logistic-normal-miss0','logistic-normal-pool0')
+compopts <- c('dir-mult','logistic-normal-miss0','logistic-normal-pool0','logistic-normal-01-infl','logistic-normal-01-infl-2par')
+# compopts <- c('dir-mult','logistic-normal-miss0','logistic-normal-pool0','logistic-normal-01-infl','logistic-normal-01-infl-2par')
+essoption <- c(1,2,3)
 # Set up a data frame for information of model options:
-df.mods <- data.frame(fleets=rep(compopts,length(compopts)^2),
-                      index1=rep(compopts,each=length(compopts)),
-                      index2=rep(compopts,each=length(compopts)^2))
+df.mods <- as.data.frame(tidyr::crossing(compopts,essoption))
 n.mods <- dim(df.mods)[1]
 df.mods$Model <- paste0("m",1:n.mods)
 df.mods <- df.mods %>% select(Model, everything()) # moves Model to first col
@@ -48,15 +49,31 @@ for(m in 1:n.mods){
                                                                  c(0.2,0.4,0.8,1,1,1,1,1,1),
                                                                  c(0.1,0.3,0.5,0.8,0.9,1,1,1,1)),
                                                fix_pars=list(8:9,8:9,7:8,4:9,6:9)),
-                              age_comp=list(fleets=df.mods[m,"fleets"],indices=c(df.mods[m,"index1"],df.mods[m,"index2"])))
+                              age_comp=df.mods[m,"compopts"])
   
   # Mapping the estimation of numbers at age in the first year:
   # input$map$log_N1_pars=as.factor(matrix(data=NA,nrow=1,ncol=9)) # Fix all values
   input$map$log_N1_pars=as.factor(matrix(data=c(1,2,3,4,5,6,NA,NA,7),nrow=1,ncol=9)) # Fix ages 7-8
   # input$map$log_N1_pars=as.factor(matrix(data=c(1,2,3,4,5,6,NA,7,8),nrow=1,ncol=9)) # Fix ages 8
   
+  if(df.mods[m,"essoption"]==1)
+  {
+    input$data$catch_Neff <- input$data$catch_Neff*10
+    input$data$index_Neff <- input$data$index_Neff*10
+  }
+  if(df.mods[m,"essoption"]==2)
+  {
+    input$data$catch_Neff <- input$data$catch_Neff*100
+    input$data$index_Neff <- input$data$index_Neff*100
+  }
+  if(df.mods[m,"essoption"]==3)
+  {
+    input$data$catch_Neff <- input$data$catch_Neff*0 +100
+    input$data$index_Neff <- input$data$index_Neff*0 +100
+  }
+  
   # Fit model:
-  mod <- fit_wham(input, do.osa = F, do.check=F) # turn off OSA residuals to save time
+  mod <- try(fit_wham(input, do.osa = F, do.check=F)) # turn off OSA residuals to save time
   # m1 <- fit_wham(input, do.osa = F) # turn off OSA residuals to save time
   
   saveRDS(mod, file=paste0(df.mods$Model[m],".rds"))
@@ -92,3 +109,6 @@ df.aic[,3:5] <- format(round(df.aic[,3:5], 3), nsmall=3)
 df.aic[grep("NA",df.aic$dAIC),] <- "---"
 df.mods <- cbind(df.mods, df.aic)
 rownames(df.mods) <- NULL
+
+# Compare across models
+write.csv(df.mods, file="df.mods.csv",quote=F, row.names=F)
