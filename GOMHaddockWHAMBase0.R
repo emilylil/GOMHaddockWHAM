@@ -32,19 +32,43 @@ input <- prepare_wham_input(GOM_HADDOCK_DAT, recruit_model=2, model_name="GOMHad
                                                                c(0.01,0.1,0.3,0.5,0.8,0.9,1,1,0.999),
                                                                c(0.2,0.4,0.8,1,1,1,1,1,1),
                                                                c(0.1,0.3,0.5,0.8,0.9,1,1,1,1)),
-                                             fix_pars=list(8:9,8:9,7:8,4:9,6:9)))
+                                             fix_pars=list(8:9,8:9,7:9,4:9,6:9)))
 
 # Fix age 7-8 in the first year to 500 individuals
-input$par$log_N1_pars[7:8] <- 0.5
+# input$par$log_N1_pars[7:8] <- 0.0
 
 # Mapping the estimation of numbers at age in the first year:
 # input$map$log_N1_pars=as.factor(matrix(data=NA,nrow=1,ncol=9)) # Fix all values
-input$map$log_N1_pars=as.factor(matrix(data=c(1,2,3,4,5,6,NA,NA,7),nrow=1,ncol=9)) # Fix ages 7-8
+# input$map$log_N1_pars=as.factor(matrix(data=c(1,2,3,4,5,6,NA,NA,7),nrow=1,ncol=9)) # Fix ages 7-8
+input$map$log_N1_pars=as.factor(matrix(data=c(1,2,3,4,5,6,NA,NA,NA),nrow=1,ncol=9)) # Fix ages 7-8
 # input$map$log_N1_pars=as.factor(matrix(data=c(1,2,3,4,5,6,NA,7,8),nrow=1,ncol=9)) # Fix ages 8
 
 # Fit model:
 m0 <- fit_wham(input, do.osa = F, do.check=T) # turn off OSA residuals to save time
 # m0 <- fit_wham(input, do.osa = F) # turn off OSA residuals to save time
+
+# # m0$env$data$agg_catch_sigma <- mod.OM$env$data$agg_catch_sigma
+# # m0$env$data$agg_index_sigma <- mod.OM$env$data$agg_index_sigma
+# m0$env$data$catch_Neff <- m0$env$data$catch_Neff*500
+# m0$env$data$index_Neff <- m0$env$data$index_Neff*500
+# 
+# simdata <- m0$simulate(complete=T)
+# siminput = input
+# siminput$data <- simdata
+# 
+# siminput$data$catch_Neff <- siminput$data$catch_Neff/500
+# siminput$data$index_Neff <- siminput$data$index_Neff/500
+# 
+# catchprop <- matrix(NA,nrow=43,ncol=9)
+# for(i in 1:9)
+# {
+#   catchprop[,i] <- round(simdata$catch_paa[,,i],4)
+# }
+# catchprop
+# 
+# simmod <- fit_wham(siminput, do.osa = F, do.check=T,do.retro=F)
+
+plot_wham_output(mod=simmod,out.type='html')
 
 # Check that m0 converged (m1$opt$convergence should be 0, and the maximum gradient should be < 1e-06)
 # check_convergence(m0)
